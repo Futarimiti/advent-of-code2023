@@ -1,0 +1,19 @@
+cabal-version:   3.0
+name:            x2-cube-conudrum
+version:         0.1.0.0
+license:         MIT
+license-file:    LICENSE
+author:          Futar
+maintainer:      Futarimiti@163.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+executable x2-cube-conudrum
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:    base ^>=4.17.2.0
+    hs-source-dirs:   app
+    default-language: GHC2021
