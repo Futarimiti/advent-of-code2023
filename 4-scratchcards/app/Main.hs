@@ -4,21 +4,25 @@ module Main (main) where
 
 import           Control.Applicative          (Alternative (some))
 import           Data.Char                    (isDigit)
-import           Data.IntMap.Strict           (IntMap, alter, elems, empty,
+import           Data.IntMap                  (IntMap, alter, elems, empty,
                                                fromList, (!))
 import           Data.List                    (find)
 import           Data.Maybe                   (fromJust)
 import           Text.ParserCombinators.ReadP
 
-data Order = Win | My
-  deriving (Eq, Show)
+data Card = Card
+  { cid     :: Int
+  , winNums :: [Int]
+  , myNums  :: [Int]
+  } deriving (Eq, Show)
 
-winningNumsBy :: Order  -- order by winning nums or my nums?
-              -> [Int]  -- winning nums
-              -> [Int]  -- my nums
-              -> [Int]
-winningNumsBy Win winning my = filter (`elem` winning) my
-winningNumsBy My  winning my = filter (`elem` my) winning
+winningNums :: [Int]  -- winning nums
+            -> [Int]  -- my nums
+            -> [Int]
+winningNums = filter . flip elem
+
+matches :: Card -> Int
+matches Card{..} = length $ winningNums winNums myNums
 
 points :: Int  -- winning num count
        -> Int
@@ -27,15 +31,9 @@ points 1 = 1
 points n = 2 * points (n - 1)
 
 cardPoints :: Card -> Int
-cardPoints Card{..} = points $ length $ winningNumsBy Win winNums myNums
+cardPoints = points . matches
 
 -- parsers
-
-data Card = Card
-  { cid     :: Int
-  , winNums :: [Int]
-  , myNums  :: [Int]
-  } deriving (Eq, Show)
 
 card :: ReadP Card
 card = do _ <- string "Card"
@@ -48,16 +46,11 @@ card = do _ <- string "Card"
           skipSpaces
           my <- sepBy1 int skipSpaces
           return $ Card cid wins my
+  where int = read <$> munch1 isDigit
 
 parseCard :: String -> Card
-parseCard = fromJust . parseCardM
+parseCard = fst . fromJust . find (null . snd) . readP_to_S card
 
-parseCardM :: String -> Maybe Card
-parseCardM = fmap fst . find (null . snd) . readP_to_S card
-
-int :: ReadP Int
-int = do numStr <- munch1 isDigit
-         return $ read numStr
 
 -- main :: IO ()
 -- main = do input <- readFile "input.txt"
@@ -67,9 +60,6 @@ int = do numStr <- munch1 isDigit
 --           print $ sum points
 
 -- part 2
-
-matches :: Card -> Int
-matches Card{..} = length $ winningNumsBy My winNums myNums
 
 -- which cards do I won after this one card?
 -- may include non-existing cards
@@ -82,12 +72,12 @@ type Pile = IntMap CardID
 startingPile :: Pile
 startingPile = fromList $ map (, 1) [1..219]
 
-totalCards :: [Card] -> IntMap CardID
+totalCards :: [Card] -> Pile
 totalCards = foldl accum startingPile
 
-accum :: IntMap CardID -> Card -> IntMap CardID
+accum :: Pile -> Card -> Pile
 accum m c@Card{..} = foldl f m (cardsWon c)
-  where f :: IntMap CardID -> CardID -> IntMap CardID
+  where f :: Pile -> CardID -> Pile
         f m i = alter (maybe (Just n) (Just . (+n))) i m
         n = m ! cid
 
