@@ -1,0 +1,23 @@
+cabal-version:   3.0
+name:            x4-scratchcards
+version:         0.1.0.0
+license:
+author:          Futar
+maintainer:      Futarimiti@163.com
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+common warnings
+  ghc-options: -Wall
+
+executable x4-scratchcards
+  default-extensions: ViewPatterns
+  import:             warnings
+  main-is:            Main.hs
+  build-depends:
+    , base  ^>=4.17.2.0
+    , mtl
+    , containers
+
+  hs-source-dirs:     app
+  default-language:   GHC2021
