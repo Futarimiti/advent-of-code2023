@@ -15,8 +15,7 @@ executable x4-scratchcards
   import:             warnings
   main-is:            Main.hs
   build-depends:
-    , base  ^>=4.17.2.0
-    , mtl
+    , base        ^>=4.17.2.0
     , containers
 
   hs-source-dirs:     app
