@@ -193,8 +193,8 @@ locToSeed Almanac'{..} loc = let humidity = reverseLookup loc humidityToLocation
                               in reverseLookup soil seedToSoil'
 
 reverseLookup :: Int
-             -> Sorted Mapping'
-             -> Int  -- bijection
+              -> Sorted Mapping'
+              -> Int  -- bijection
 reverseLookup n [] = n
 reverseLookup n ((dest, src, range):ms)
   | n < dest = n
