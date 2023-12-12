@@ -1,0 +1,22 @@
+cabal-version:   3.0
+name:            x11-cosmic-expansion
+version:         0.1.0.0
+license:
+author:          Futar
+maintainer:      Futarimiti@163.com
+build-type:      Simple
+extra-doc-files: none
+
+common warnings
+  ghc-options: -Wall
+
+executable x11-cosmic-expansion
+  import:           warnings
+  main-is:          Main.hs
+  build-depends:
+    , base  ^>=4.17.2.0
+    , lens
+    , mtl
+
+  hs-source-dirs:   app
+  default-language: GHC2021
