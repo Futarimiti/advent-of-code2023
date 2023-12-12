@@ -13,10 +13,6 @@ common warnings
 executable x11-cosmic-expansion
   import:           warnings
   main-is:          Main.hs
-  build-depends:
-    , base  ^>=4.17.2.0
-    , lens
-    , mtl
-
+  build-depends:    base ^>=4.17.2.0
   hs-source-dirs:   app
   default-language: GHC2021
