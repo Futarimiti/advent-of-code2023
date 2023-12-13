@@ -1,0 +1,18 @@
+cabal-version:   3.0
+name:            x13-point-of-incidence
+version:         0.1.0.0
+license:         NONE
+author:          Futar
+maintainer:      Futarimiti@163.com
+build-type:      Simple
+extra-doc-files: none
+
+common warnings
+    ghc-options: -Wall
+
+executable x13-point-of-incidence
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:    base ^>=4.19.0.0, split
+    hs-source-dirs:   app
+    default-language: GHC2021
