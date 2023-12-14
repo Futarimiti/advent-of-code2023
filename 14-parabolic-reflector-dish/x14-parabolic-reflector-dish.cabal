@@ -1,0 +1,18 @@
+cabal-version:   3.0
+name:            x14-parabolic-reflector-dish
+version:         0.1.0.0
+license:         NONE
+author:          Futar
+maintainer:      Futarimiti@163.com
+build-type:      Simple
+extra-doc-files: none
+
+common warnings
+    ghc-options: -Wall
+
+executable x14-parabolic-reflector-dish
+    import:           warnings
+    main-is:          Main.hs
+    build-depends:    base ^>=4.17.2.0, containers, mtl
+    hs-source-dirs:   app
+    default-language: GHC2021
