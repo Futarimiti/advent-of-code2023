@@ -86,7 +86,8 @@ def main():
     text = handle.read()
     handle.close()
     image = parse_image(text)
-    expanded = expand(image, factor=2)
+    # expanded = expand(image, factor=2)  # part 1
+    expanded = expand(image, factor=1000000)  # part 2
     pairs = galaxy_pairs(expanded)
     dists = [dist_btw(g1, g2) for g1, g2 in pairs]
     total = sum(dists)
