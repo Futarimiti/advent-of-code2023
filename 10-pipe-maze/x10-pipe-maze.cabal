@@ -13,6 +13,6 @@ common warnings
 executable x10-pipe-maze
     import:           warnings
     main-is:          Main.hs
-    build-depends:    base ^>=4.17.2.0, vector, bytestring
+    build-depends:    base ^>=4.17.2.0, vector, bytestring, containers
     hs-source-dirs:   app
     default-language: GHC2021

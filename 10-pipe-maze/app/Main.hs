@@ -1,21 +1,18 @@
-{-# LANGUAGE LambdaCase      #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ViewPatterns    #-}
+{-# LANGUAGE LambdaCase   #-}
+{-# LANGUAGE ViewPatterns #-}
 
-module Main (main, debug) where
+module Main (main', debug, main) where
 
 import           Control.Monad  (filterM)
 import           Data.Bifunctor (Bifunctor (first, second))
 import           Data.Maybe     (mapMaybe)
+import           Data.Set       (Set, member)
+import qualified Data.Set       as S
 import           Data.Vector    (Vector, (!?))
 import qualified Data.Vector    as V
-import           System.IO      (IOMode (WriteMode), hPutStrLn, openFile)
+import           System.IO      (IOMode (WriteMode), hFlush, hPrint, openFile)
 
 type Coords = (Int, Int)
-
-data Pipe = Pipe { pipe :: Char
-                 , pos  :: Coords
-                 } deriving Show
 
 -- for O(1) indexing
 type System = Vector (Vector Char)
@@ -44,26 +41,30 @@ findStart (V.indexed -> sys) = do
   return (row, col)
 
 -- find the 2 openings for each pipe; not interested in order.
-openings :: Char -> Maybe (Direction, Direction)
-openings = \case '-' -> Just (E, W)
-                 '|' -> Just (N, S)
-                 'L' -> Just (N, E)
-                 'J' -> Just (N, W)
-                 '7' -> Just (W, S)
-                 'F' -> Just (E, S)
-                 _ -> Nothing
+findOpenings :: Char -> Maybe (Direction, Direction)
+findOpenings = \case '-' -> Just (E, W)
+                     '|' -> Just (N, S)
+                     'L' -> Just (N, E)
+                     'J' -> Just (N, W)
+                     '7' -> Just (W, S)
+                     'F' -> Just (E, S)
+                     _ -> Nothing
 
 -- find the 2 direction where it is going from and to.
 -- a pipe may not connect to 3 or more neighbours.
 findConnected :: System -> Coords -> Maybe (Direction, Direction)
-findConnected sys coords = do
-  let surr = mapMaybe upon [N, E, S, W]
-  [(a, _), (b, _)] <- filterM (uncurry $ flip connectsTo) surr
-  return (a, b)
-    where upon dir = do c <- sys `atMay` move1 dir coords
-                        return (dir, c)
-          ch `connectsTo` dir = do (x, y) <- openings ch
-                                   return $ opposite dir `elem` [x, y]
+findConnected sys coords
+  | Just 'S' <- at = do
+    let surr = mapMaybe upon [N, E, S, W]
+    [(a, _), (b, _)] <- filterM (uncurry $ flip connectsTo) surr
+    return (a, b)
+  | otherwise = at >>= findOpenings
+  where at = sys `atMay` coords
+        upon dir = do c <- sys `atMay` move1 dir coords
+                      return (dir, c)
+        ch `connectsTo` dir = do (x, y) <- findOpenings ch
+                                 return $ opposite dir `elem` [x, y]
+
 
 -- start from given coords, move 1 pace to the given direction.
 -- where will you be?
@@ -95,7 +96,7 @@ turn _ _   = Nothing
 -- returning the trail passed.
 -- there could be two paths since the start point
 -- has two openings; one is chosen at random.
-walk :: System -> Maybe [Pipe]
+walk :: System -> Maybe [Coords]
 walk sys = do start <- findStart sys
               (d, _) <- findConnected sys start
               -- first step must be manually made
@@ -104,23 +105,19 @@ walk sys = do start <- findStart sys
               ch <- sys `atMay` next
               ndir <- turn ch d
               trail <- walk' sys start next ndir []
-              return $ Pipe 'S' start : trail
+              return $ start : trail
 
 walk' :: System
       -> Coords     -- end
       -> Coords     -- curr
       -> Direction  -- where i am going next, not what brings me here
-      -> [Pipe]     -- already been to
-      -> Maybe [Pipe]
+      -> [Coords]   -- already been to
+      -> Maybe [Coords]
 walk' sys end curr dir been
-  | end == next = do thisch <- sys `atMay` curr
-                     let this = Pipe thisch curr
-                     return (this:been)
-  | otherwise = do thisch <- sys `atMay` curr
-                   nextch <- sys `atMay` next
+  | end == next = Just (curr:been)
+  | otherwise = do nextch <- sys `atMay` next
                    ndir <- turn nextch dir
-                   let this = Pipe thisch curr
-                   walk' sys end next ndir (this:been)
+                   walk' sys end next ndir (curr:been)
   where next = move1 dir curr
 
 debug :: IO ()
@@ -128,13 +125,59 @@ debug = do input <- readFile "input.txt"
            output <- openFile "trail.txt" WriteMode
            let sys = parseSystem input
            case walk sys of
-             Just trail -> mapM_ (\Pipe{..} -> hPutStrLn output $ pipe : ' ' : show pos) trail
+             Just trail -> do mapM_ (hPrint output) trail
+                              hFlush output
              Nothing    -> error "cannot walk"
+
+main' :: IO ()
+main' = do input <- readFile "input.txt"
+           let sys = parseSystem input
+           case walk sys of
+             Just trail -> print (length trail `div` 2)
+             _          -> error "Nothing"
+
+-- part 2
+
+data Status = In | Out
+  deriving (Show, Eq)
+
+-- count inner tiles within a row
+countInner :: System -> Int -> [Char] -> Maybe Int
+countInner sys row ts = do
+  trail <- walk sys
+  let trailS = S.fromList trail
+  countInner' sys Out 0 (row, 0) trailS ts
+
+countInner' :: System -> Status -> Int -> Coords -> Set Coords -> [Char] -> Maybe Int
+countInner' _ _ acc _ _ [] = Just acc
+countInner' sys Out acc (row, col) trail ('S':ts) = do
+  (d1, d2) <- findConnected sys (row, col)
+  let down = S `elem` [d1, d2]
+  if down then countInner' sys In acc (row, col + 1) trail ts
+          else countInner' sys Out acc (row, col + 1) trail ts
+countInner' sys Out acc (row, col) trail (t:ts)
+  | used && goDown t = countInner' sys In acc (row, col + 1) trail ts
+  | otherwise = countInner' sys Out acc (row, col + 1) trail ts
+  where used = (row, col) `member` trail
+countInner' sys In acc (row, col) trail ('S':ts) = do
+  (d1, d2) <- findConnected sys (row, col)
+  let down = S `elem` [d1, d2]
+  if down then countInner' sys Out acc (row, col + 1) trail ts
+          else countInner' sys In acc (row, col + 1) trail ts
+countInner' sys In acc (row, col) trail (t:ts)
+  | used && goDown t = countInner' sys Out acc (row, col + 1) trail ts
+  | used = countInner' sys In acc (row, col + 1) trail ts
+  | otherwise = countInner' sys In (acc + 1) (row, col + 1) trail ts
+  where used = (row, col) `member` trail
+
+
+goDown :: Char -> Bool
+goDown = (`elem` "|F7")
 
 main :: IO ()
 main = do input <- readFile "input.txt"
+          let lined = lines input
+          let enum = zip [0..] lined
           let sys = parseSystem input
-          case walk sys of
-            Just trail -> print (length trail `div` 2)
-            _          -> error "Nothing"
-
+          let inners = mapMaybe (uncurry $ countInner sys) enum
+          print $ sum inners
