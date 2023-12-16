@@ -119,7 +119,7 @@ main = do input <- readFile "input.txt"
           output <- openFile "output.txt" WriteMode
           let dish = parseDish input
           let tilteds = iterate tiltCycle dish
-          let first100 = map (load North) (take 1000 tilteds)
-          let enum100 = zip [(0 :: Int)..] first100
+          let first1000 = map (load North) (take 1000 tilteds)
+          let enum100 = zip [(0 :: Int)..] first1000
           mapM_ (hPrint output) enum100
           hClose output
