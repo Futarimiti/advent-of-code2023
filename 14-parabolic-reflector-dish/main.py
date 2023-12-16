@@ -8,6 +8,7 @@ from collections.abc import Callable
 import sys
 
 
+# magic
 def tailrec(g: Callable) -> Callable:
 
     class TailRecurseException(BaseException):
