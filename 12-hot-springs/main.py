@@ -1,74 +1,70 @@
+# pyright: strict
+
+from typing import Tuple
+from dataclasses import dataclass
 from functools import cache
-from typing import Iterable, Tuple
 
 
-def parse_line(line: str) -> Tuple[str, Iterable[int]]:
-    [pat, list_str] = line.split()
-    nums = map(int, list_str.split(','))
-    return (pat, nums)
+@dataclass
+class Spring:
+    pattern: str
+    groups: Tuple[int, ...]
 
 
-def arrangements(pat: Iterable[str], specs: Iterable[int]) -> int:
-    match pat, specs:
-        case [], []: return 1
-        case [], _: return 0
-        case _, [] if '#' in pat: return 0
-        case _, []: return 1
-        case ['.', *cs], _: return arrangements(cs, specs)
-        case ['#'], [1]: return 1
-        case ['#'], _: return 0
-        case ['#', '.', *cs], [1, *spec]: return arrangements(cs, spec)
-        case ['#', '.', *_], _: return 0
-        case ['#', '#', *_], [1, *_]: return 0
-        case ['#', '#', *cs], [n, *spec]: return arrangements(['#', *cs], [n - 1, *spec])
-        case ['#', '?', *cs], [1, *spec]: return arrangements(cs, spec)
-        case ['#', '?', *cs], [n, *spec]: return arrangements(['#', *cs], [n - 1, *spec])
-        case ['?'], [1]: return 1
-        case ['?'], _: return 0
-        case ['?', c, *cs], _:
-            this = arrangements(['#', c, *cs], specs)
-            next = arrangements(['.', c, *cs], specs)
-            return this + next
-        case _:
-            raise Exception('arrangements: unexpected pattern: ', (pat, specs))
+def parse_spring(line: str) -> Spring:
+    [pat, nums] = line.split()
+    groups = tuple(int(n) for n in nums.split(','))
+    return Spring(pattern=pat, groups=groups)
 
-
-# @cache
-# def arrangements_(pat: Tuple[str, ...], specs: Tuple[int, ...]) -> int:
-#     return arrangements(list(pat), list(specs))
 
 @cache
-def arrangements_(pat: Tuple[str, ...], specs: Tuple[int, ...]) -> int:
-    match pat, specs:
+def arrangements_(chars: Tuple[str, ...], groups: Tuple[int, ...]) -> int:
+    match chars, groups:
         case [], []: return 1
         case [], _: return 0
-        case _, [] if '#' in pat: return 0
-        case _, []: return 1
-        case ['.', *cs], _: return arrangements_(tuple(cs), specs)
-        case ['#'], [1]: return 1
+        case ['.' | '?'], []: return 1
+        case ['.'], _: return 0
+        case ['.', *cs], _: return arrangements_(tuple(cs), groups)
+        case ['#' | '?'], [1]: return 1
         case ['#'], _: return 0
-        case ['#', '.', *cs], [1, *spec]: return arrangements_(tuple(cs), tuple(spec))
+        case ['#', *_], []: return 0
+        case ['#', '.' | '?', *cs], [1, *xs]: return arrangements_(tuple(cs), tuple(xs))
+        case ['#', '#' | '?', *cs], [x, *xs]: return arrangements_(('#', *cs), (x - 1, *xs))
         case ['#', '.', *_], _: return 0
-        case ['#', '#', *_], [1, *_]: return 0
-        case ['#', '#', *cs], [n, *spec]: return arrangements_(('#', *cs), (n - 1, *spec))
-        case ['#', '?', *cs], [1, *spec]: return arrangements_(tuple(cs), tuple(spec))
-        case ['#', '?', *cs], [n, *spec]: return arrangements_(('#', *cs), (n - 1, *spec))
-        case ['?'], [1]: return 1
         case ['?'], _: return 0
-        case ['?', c, *cs], _:
-            this = arrangements_(('#', c, *cs), specs)
-            next = arrangements_(('.', c, *cs), specs)
-            return this + next
-        case _:
-            raise Exception('arrangements: unexpected pattern: ', (pat, specs))
+        case ['?', *cs], _: return arrangements_(('#', *cs), groups) + arrangements_(('.', *cs), groups)
+        case _, _: raise ValueError(f'invalid pattern: {chars}, {groups}')
 
-def main():
-    handle = open('input.txt', 'r')
+
+def arrangements(spring: Spring) -> int:
+    chars = tuple(spring.pattern)
+    return arrangements_(chars, spring.groups)
+
+
+def main_():
+    handle = open('input.txt')
     lines = handle.read().splitlines()
     handle.close()
-    pairs = map(parse_line, lines)
-    times5 = [('?'.join([pat] * 5), tuple(specs) * 5) for pat, specs in pairs]
-    arrss = [arrangements_(tuple(pat), specs) for pat, specs in times5]
+    springs = map(parse_spring, lines)
+    arrss = map(arrangements, springs)
+    print(sum(arrss))
+
+
+# part 2
+
+def fivefold(spring: Spring) -> Spring:
+    pattern = '?'.join([spring.pattern] * 5)
+    groups = spring.groups * 5
+    return Spring(pattern=pattern, groups=groups)
+
+
+def main():
+    handle = open('input.txt')
+    lines = handle.read().splitlines()
+    handle.close()
+    springs = map(parse_spring, lines)
+    fivefolded = map(fivefold, springs)
+    arrss = map(arrangements, fivefolded)
     print(sum(arrss))
 
 
