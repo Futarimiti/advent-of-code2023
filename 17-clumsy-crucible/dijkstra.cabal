@@ -1,0 +1,23 @@
+cabal-version:   3.0
+name:            x17-clumsy-crucible
+version:         0.1.0.0
+license:
+author:          Futar
+maintainer:      Futarimiti@163.com
+build-type:      Simple
+extra-doc-files: none
+
+common warnings
+  ghc-options: -Wall
+
+executable dijkstra
+  import:           warnings
+  main-is:          Main.hs
+  build-depends:
+    , base               ^>=4.17.2.0
+    , containers
+    , mtl
+    , search-algorithms
+
+  hs-source-dirs:   app
+  default-language: GHC2021
