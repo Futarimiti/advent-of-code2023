@@ -1,15 +1,20 @@
+-- reddit.com/r/adventofcode/comments/18lwcw2/2023_day_19_an_equivalent_part_2_example_spoilers
+-- thanks, Boojum!
+
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Part2 (main) where
 
 import           Control.Applicative          (Alternative (some), (<|>))
 import           Data.Char                    (isAlphaNum, isNumber)
-import           Data.Map                     (Map, (!))
+import           Data.Map.Strict              (Map, (!))
 import qualified Data.Map.Strict              as M
-import           Text.ParserCombinators.ReadP
+import           Text.ParserCombinators.ReadP (ReadP, char, munch1, readP_to_S,
+                                               satisfy, string, (<++))
 
 main :: IO ()
 main = do input <- readFile "input.txt"
@@ -21,18 +26,6 @@ main = do input <- readFile "input.txt"
           let tree = buildTree m
           let start = PartR (1, 4000) (1, 4000) (1, 4000) (1, 4000)
           print $ calc tree start
-
--- build a tree from a map of workflows, starting with "in"
-buildTree :: Map String Workflow -> Tree
-buildTree = buildNode "in"
-
--- sub tree
-buildNode :: String -> Map String Workflow -> Tree
-buildNode key m = let Tern p (Const t) (Const f) = m ! key
-                      next = \case Accepted -> TA
-                                   Rejected -> TR
-                                   Named k  -> buildNode k m
-                  in Node p (next t) (next f)
 
 data Tree = TR
           | TA
@@ -131,37 +124,47 @@ flatten label (Tern p t (Tern p' t' f)) = (label, Tern p t nf) : flatten flabel 
   where flabel = label ++ "F"
         nf = Const (Named flabel)
 
-productUp :: PartR -> Integer
-productUp PartR{..} = product (diff <$> [xr, mr, ar, sr])
-  where diff (b, t) = 1 + fromIntegral (t - b)
-
-updateBy :: Pred -> PartR -> PartR
-updateBy (c :< n) curr = case c of
-                           X -> let (bot, top) = xr curr in curr { xr = (bot, min (n - 1) top) }
-                           M -> let (bot, top) = mr curr in curr { mr = (bot, min (n - 1) top) }
-                           A -> let (bot, top) = ar curr in curr { ar = (bot, min (n - 1) top) }
-                           S -> let (bot, top) = sr curr in curr { sr = (bot, min (n - 1) top) }
-updateBy (c :> n) curr = case c of
-                           X -> let (bot, top) = xr curr in curr { xr = (max (n + 1) bot, top) }
-                           M -> let (bot, top) = mr curr in curr { mr = (max (n + 1) bot, top) }
-                           A -> let (bot, top) = ar curr in curr { ar = (max (n + 1) bot, top) }
-                           S -> let (bot, top) = sr curr in curr { sr = (max (n + 1) bot, top) }
-
-updateAgainst :: Pred -> PartR -> PartR
-updateAgainst (c :< n) curr = case c of
-                                X -> let (bot, top) = xr curr in curr { xr = (max n bot, top) }
-                                M -> let (bot, top) = mr curr in curr { mr = (max n bot, top) }
-                                A -> let (bot, top) = ar curr in curr { ar = (max n bot, top) }
-                                S -> let (bot, top) = sr curr in curr { sr = (max n bot, top) }
-updateAgainst (c :> n) curr = case c of
-                                X -> let (bot, top) = xr curr in curr { xr = (bot, min n top) }
-                                M -> let (bot, top) = mr curr in curr { mr = (bot, min n top) }
-                                A -> let (bot, top) = ar curr in curr { ar = (bot, min n top) }
-                                S -> let (bot, top) = sr curr in curr { sr = (bot, min n top) }
-
 calc :: Tree -> PartR -> Integer
 calc TR _ = 0
 calc TA curr = productUp curr
+  where productUp PartR{..} = product (diff <$> [xr, mr, ar, sr])
+        diff (b, t) = 1 + fromIntegral (t - b)
 calc Node{..} curr = calc right (updateBy predicate curr)
                    + calc left (updateAgainst predicate curr)
+  where
+    -- i apologise to lens
+    updateBy :: Pred -> PartR -> PartR
+    updateBy (c :< n) curr = case c of
+                               X -> let (bot, top) = xr curr in curr { xr = (bot, min (n - 1) top) }
+                               M -> let (bot, top) = mr curr in curr { mr = (bot, min (n - 1) top) }
+                               A -> let (bot, top) = ar curr in curr { ar = (bot, min (n - 1) top) }
+                               S -> let (bot, top) = sr curr in curr { sr = (bot, min (n - 1) top) }
+    updateBy (c :> n) curr = case c of
+                               X -> let (bot, top) = xr curr in curr { xr = (max (n + 1) bot, top) }
+                               M -> let (bot, top) = mr curr in curr { mr = (max (n + 1) bot, top) }
+                               A -> let (bot, top) = ar curr in curr { ar = (max (n + 1) bot, top) }
+                               S -> let (bot, top) = sr curr in curr { sr = (max (n + 1) bot, top) }
+
+    updateAgainst :: Pred -> PartR -> PartR
+    updateAgainst (c :< n) curr = case c of
+                                    X -> let (bot, top) = xr curr in curr { xr = (max n bot, top) }
+                                    M -> let (bot, top) = mr curr in curr { mr = (max n bot, top) }
+                                    A -> let (bot, top) = ar curr in curr { ar = (max n bot, top) }
+                                    S -> let (bot, top) = sr curr in curr { sr = (max n bot, top) }
+    updateAgainst (c :> n) curr = case c of
+                                    X -> let (bot, top) = xr curr in curr { xr = (bot, min n top) }
+                                    M -> let (bot, top) = mr curr in curr { mr = (bot, min n top) }
+                                    A -> let (bot, top) = ar curr in curr { ar = (bot, min n top) }
+                                    S -> let (bot, top) = sr curr in curr { sr = (bot, min n top) }
+
+-- build a tree from a map of workflows, starting with "in"
+buildTree :: Map String Workflow -> Tree
+buildTree = buildNode "in"
+  where
+    buildNode :: String -> Map String Workflow -> Tree
+    buildNode key m = let Tern p (Const t) (Const f) = m ! key
+                          next = \case Accepted -> TA
+                                       Rejected -> TR
+                                       Named k  -> buildNode k m
+                      in Node p (next t) (next f)
 
