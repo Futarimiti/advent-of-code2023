@@ -1,0 +1,26 @@
+cabal-version:   3.0
+name:            x19-aplenty
+version:         0.1.0.0
+license:
+author:          Futar
+maintainer:      Futarimiti@163.com
+build-type:      Simple
+extra-doc-files: none
+
+common warnings
+  ghc-options: -Wall
+
+executable x19-aplenty
+  import:           warnings
+  main-is:          Main.hs
+  other-modules:
+    Part1
+    Part2
+
+  build-depends:
+    , base        ^>=4.17.2.0
+    , containers
+    , split
+
+  hs-source-dirs:   app
+  default-language: GHC2021
