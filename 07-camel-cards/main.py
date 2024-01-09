@@ -1,9 +1,10 @@
 # pyright: strict
 
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import IntEnum
 from typing import List, Tuple
 from itertools import count, groupby
+
 
 class HandType(IntEnum):
     HIGH_CARD = 1
@@ -15,13 +16,9 @@ class HandType(IntEnum):
     FIVE_OF_A_KIND = 7
 
 
-class Ordering(Enum):
-    LT = 1
-    EQ = 2
-    GT = 3
-
-
 char = str
+
+
 @dataclass
 class Card:
     val: char
@@ -47,24 +44,26 @@ class Hand:
 
 
 def hand_type(hand: Hand) -> HandType:
-    match sorted([list(g) for _,g in groupby(sorted(hand.cards))], key=len, reverse=True):
+    match sorted([list(g) for _, g in groupby(sorted(hand.cards))], key=len, reverse=True):
         case [_]:
             return HandType.FIVE_OF_A_KIND
-        case [[_,_,_,_],_]:
+        case [[_, _, _, _], _]:
             return HandType.FOUR_OF_A_KIND
-        case [[_,_,_],_]:
+        case [[_, _, _], _]:
             return HandType.FULL_HOUSE
-        case [[_,_,_],*_]:
+        case [[_, _, _], *_]:
             return HandType.THREE_OF_A_KIND
-        case [[_,_],[_,_],_]:
+        case [[_, _], [_, _], _]:
             return HandType.TWO_PAIR
-        case [[_,_],*_]:
+        case [[_, _], *_]:
             return HandType.ONE_PAIR
         case _:
             return HandType.HIGH_CARD
 
 
 Bid = int
+
+
 def parse_line(line: str) -> Tuple[Hand, Bid]:
     [hand, bid] = line.split()
     return (Hand(cards=list(map(Card, hand))), int(bid))
@@ -109,7 +108,7 @@ class Hand_:
 def hand_type_(hand: Hand_) -> HandType:
     without_j = [c for c in hand.cards if c.val != 'J']
     js = len([c for c in hand.cards if c.val == 'J'])
-    match sorted([list(g) for _,g in groupby(sorted(without_j))], key=len, reverse=True):
+    match sorted([list(g) for _, g in groupby(sorted(without_j))], key=len, reverse=True):
         case []:
             return HandType.FIVE_OF_A_KIND
         case xx:
